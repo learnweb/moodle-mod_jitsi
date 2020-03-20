@@ -102,6 +102,16 @@ if ($CFG->branch < 36) {
 }
 echo "width: '100%',\n";
 echo "height: 650,\n";
+echo "interfaceConfigOverwrite: {
+     TOOLBAR_BUTTONS: [
+        'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+        'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+        'livestreaming', 'etherpad', " .
+        (has_capability("mod/jitsi:addinstance", $context) ? "'info'," : "" ) .
+        "'settings', 'raisehand',
+        'videoquality', 'filmstrip', 'feedback', 'stats', 'shortcuts',
+        'tileview', 'download', 'help', 'mute-everyone'
+     ],},\n";
 echo "}\n";
 echo "var api = new JitsiMeetExternalAPI(domain, options);\n";
 echo "api.executeCommand('displayName', '".$nombre."');\n";
