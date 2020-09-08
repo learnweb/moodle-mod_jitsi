@@ -64,19 +64,21 @@ $courseid = $course->id;
 $context = context_course::instance($courseid);
 
 $roles = get_user_roles($context, $USER->id);
-$is_teacher=true;
+
+$rolestr[] = null;
 foreach ($roles as $role) {
     $rolestr[] = $role->shortname;
 }
 if ($jitsi->intro) {
     echo $OUTPUT->box(format_module_intro('jitsi', $jitsi, $cm->id), 'generalbox mod_introbox', 'jitsiintro');
 }
-$teacher = 'false';
-if (in_array('editingteacher', $rolestr)==1){
-  $teacher = 'true';
-}
-$nom = null;
 
+$moderation = false;
+if (has_capability('mod/jitsi:moderation', $context)) {
+    $moderation = true;
+}
+
+$nom = null;
 switch ($CFG->jitsi_id) {
     case 'username':
         $nom = $USER->username;
@@ -84,44 +86,69 @@ switch ($CFG->jitsi_id) {
     case 'nameandsurname':
         $nom = $USER->firstname.' '.$USER->lastname;
         break;
+    case 'alias':
+        break;
 }
-$sessionoptionsparam = ['$course->shortname','$jitsi->id','$jitsi->name'];
-$fieldssesionname = $CFG->jitsi_sesionname;
+$sessionoptionsparam = ['$course->shortname', '$jitsi->id', '$jitsi->name'];
+$fieldssessionname = $CFG->jitsi_sesionname;
 
-$allowed = explode(',', $fieldssesionname);
-$max = sizeof($allowed);
+$allowed = explode(',', $fieldssessionname);
+$max = count($allowed);
 
-$sessionNom = '';
-$sesParam = '';
-$optionsSeparator = ['.', '-', '_', ''];
-for ($i=0; $i<$max;$i++){
-  if ($i!=$max-1){
-    if ($allowed[$i]==0){
-      $sesParam .= $course->shortname.$optionsSeparator[$CFG->jitsi_separator];
-    } else if ($allowed[$i]==1){
-      $sesParam .= $jitsi->id.$optionsSeparator[$CFG->jitsi_separator];
-    } else if ($allowed[$i]==2){
-      $sesParam .= $jitsi->name.$optionsSeparator[$CFG->jitsi_separator];
+$sesparam = '';
+$optionsseparator = ['.', '-', '_', ''];
+for ($i = 0; $i < $max; $i++) {
+    if ($i != $max - 1) {
+        if ($allowed[$i] == 0) {
+            $sesparam .= string_sanitize($course->shortname).$optionsseparator[$CFG->jitsi_separator];
+        } else if ($allowed[$i] == 1) {
+            $sesparam .= $jitsi->id.$optionsseparator[$CFG->jitsi_separator];
+        } else if ($allowed[$i] == 2) {
+            $sesparam .= string_sanitize($jitsi->name).$optionsseparator[$CFG->jitsi_separator];
+        }
+    } else {
+        if ($allowed[$i] == 0) {
+            $sesparam .= string_sanitize($course->shortname);
+        } else if ($allowed[$i] == 1) {
+            $sesparam .= $jitsi->id;
+        } else if ($allowed[$i] == 2) {
+            $sesparam .= string_sanitize($jitsi->name);
+        }
     }
-  }else{
-    if ($allowed[$i]==0){
-      $sesParam .= $course->shortname;
-    } else if ($allowed[$i]==1){
-      $sesParam .= $jitsi->id;
-    } else if ($allowed[$i]==2){
-      $sesParam .= $jitsi->name;
-    }
-  }
 }
+
 $avatar = $CFG->wwwroot.'/user/pix.php/'.$USER->id.'/f1.jpg';
-$urlparams = array('avatar' => $avatar, 'nom' => $nom, 'ses' => $sesParam, 'courseid' => $course->id, 'cmid' => $id, 't' => $teacher);
+$urlparams = array('avatar' => $avatar, 'nom' => $nom, 'ses' => $sesparam,
+    'courseid' => $course->id, 'cmid' => $id, 't' => $moderation);
 
 $today = getdate();
-if ($today[0] > (($jitsi->timeopen) - ($jitsi->minpretime * 60))||(in_array('editingteacher', $rolestr)==1)) {
+if ($today[0] > (($jitsi->timeopen) - ($jitsi->minpretime * 60))||
+    (in_array('editingteacher', $rolestr) == 1)) {
     echo $OUTPUT->box(get_string('instruction', 'jitsi'));
-    echo $OUTPUT->single_button(new moodle_url('/mod/jitsi/sesion.php', $urlparams), get_string('access', 'jitsi'), 'post');
+    echo $OUTPUT->single_button(new moodle_url('/mod/jitsi/session.php', $urlparams), get_string('access', 'jitsi'), 'post');
 } else {
     echo $OUTPUT->box(get_string('nostart', 'jitsi', $jitsi->minpretime));
 }
 echo $CFG->jitsi_help;
 echo $OUTPUT->footer();
+
+/**
+ * Sanitize strings
+ * @param $string - The string to sanitize.
+ * @param $forcelowercase - Force the string to lowercase?
+ * @param $anal - If set to *true*, will remove all non-alphanumeric characters.
+ */
+function string_sanitize($string, $forcelowercase = true, $anal = false) {
+    $strip = array("~", "`", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")",
+            "_", "=", "+", "[", "{", "]", "}", "\\", "|", ";", ":", "\"",
+            "'", "&#8216;", "&#8217;", "&#8220;", "&#8221;", "&#8211;", "&#8212;",
+            "â€”", "â€“", ",", "<", ".", ">", "/", "?");
+    $clean = trim(str_replace($strip, "", strip_tags($string)));
+    $clean = preg_replace('/\s+/', "-", $clean);
+    $clean = ($anal) ? preg_replace("/[^a-zA-Z0-9]/", "", $clean) : $clean;
+    return ($forcelowercase) ?
+        (function_exists('mb_strtolower')) ?
+            mb_strtolower($clean, 'UTF-8') :
+            strtolower($clean) :
+        $clean;
+}
