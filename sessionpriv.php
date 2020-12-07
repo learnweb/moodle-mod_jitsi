@@ -29,18 +29,17 @@ require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(dirname(dirname(__FILE__))).'/lib/moodlelib.php');
 require_once(dirname(__FILE__).'/lib.php');
 $PAGE->set_url($CFG->wwwroot.'/mod/jitsi/session.php');
+$PAGE->set_context(context_system::instance());
 
-$courseid = required_param('courseid', PARAM_INT);
-$cmid = required_param('cmid', PARAM_INT);
 $nombre = required_param('nom', PARAM_TEXT);
 $session = required_param('ses', PARAM_TEXT);
-$sessionnorm = str_replace(array(' ', ':', '"'), '', $session);
+$user = $DB->get_record('user', array('username' => $session));
+$sessionnorm = str_replace(array(' ', ':', '"'), '', $user->username);
 $avatar = required_param('avatar', PARAM_TEXT);
 $teacher = required_param('t', PARAM_BOOL);
-require_login($courseid);
 
-$PAGE->set_title($session);
-$PAGE->set_heading($session);
+$PAGE->set_title(get_string('privatesession', 'jitsi', $user->firstname));
+$PAGE->set_heading(get_string('privatesession', 'jitsi', $user->firstname));
 echo $OUTPUT->header();
 
 if ($teacher == 1) {
@@ -49,12 +48,6 @@ if ($teacher == 1) {
 } else {
       $teacher = false;
       $affiliation = "member";
-}
-
-$context = context_module::instance($cmid);
-
-if (!has_capability('mod/jitsi:view', $context)) {
-    notice(get_string('noviewpermission', 'jitsi'));
 }
 
 $header = json_encode([
@@ -120,10 +113,7 @@ if ($teacher == true && $CFG->jitsi_livebutton == 1) {
     $streamingoption = 'livestreaming';
 }
 
-$desktop = '';
-if (has_capability('mod/jitsi:sharedesktop', $context)) {
-    $desktop = 'desktop';
-}
+$desktop = 'desktop';
 
 $youtubeoption = '';
 if ($CFG->jitsi_shareyoutube == 1) {
@@ -160,16 +150,6 @@ echo "},\n";
 
 echo "width: '100%',\n";
 echo "height: 650,\n";
-echo "interfaceConfigOverwrite: {
-     TOOLBAR_BUTTONS: [
-        'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-        'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-        'livestreaming', 'etherpad', " .
-        (has_capability("mod/jitsi:addinstance", $context) ? "'info'," : "" ) .
-        "'settings', 'raisehand',
-        'videoquality', 'filmstrip', 'feedback', 'stats', 'shortcuts',
-        'tileview', 'download', 'help', 'mute-everyone'
-     ],},\n";
 echo "}\n";
 echo "var api = new JitsiMeetExternalAPI(domain, options);\n";
 echo "api.executeCommand('displayName', '".$nombre."');\n";
@@ -177,7 +157,7 @@ echo "api.executeCommand('avatarUrl', '".$avatar."');\n";
 if ($CFG->jitsi_finishandreturn == 1) {
     echo "api.on('readyToClose', () => {\n";
     echo      "api.dispose();\n";
-    echo      "location.href=\"".$CFG->wwwroot."/course/view.php?id=".$courseid."\";";
+    echo      "location.href=\"".$CFG->wwwroot."/user/profile.php?id=".$user->id."\";";
     echo  "});\n";
 }
 

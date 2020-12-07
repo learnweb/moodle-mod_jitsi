@@ -28,7 +28,9 @@ if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_configtext('jitsi_domain', 'Domain', 'Domain Jitsi Server', 'meet.jit.si'));
     $settings->add(new admin_setting_confightmleditor('jitsi_help', get_string('help', 'jitsi'),
         get_string('helpex', 'jitsi'), null));
-    $options = ['username' => get_string('username', 'jitsi'), 'nameandsurname' => get_string('nameandsurname', 'jitsi'), 'alias' => get_string('alias', 'jitsi')];
+    $options = ['username' => get_string('username', 'jitsi'),
+        'nameandsurname' => get_string('nameandsurname', 'jitsi'),
+        'alias' => get_string('alias', 'jitsi')];
     $settings->add(new admin_setting_configselect('jitsi_id', get_string('identification', 'jitsi'),
         get_string('identificationex', 'jitsi'), null, $options));
     $sessionoptions = ['Course Shortname', 'Session ID', 'Session Name'];
@@ -59,6 +61,8 @@ if ($ADMIN->fulltree) {
 
     $settings->add(new admin_setting_configpasswordunmask('jitsi_password', get_string('password', 'jitsi'),
         get_string('passwordex', 'jitsi'), ''));
+    $settings->add(new admin_setting_configcheckbox('jitsi_privatesessions', get_string('privatesessions', 'jitsi'),
+        get_string('privatesessionsex', 'jitsi'), 1));
 
     $settings->add(new admin_setting_heading('bookmodeditdefaults',
         get_string('tokennconfig', 'jitsi'), get_string('tokenconfigurationex', 'jitsi')));
